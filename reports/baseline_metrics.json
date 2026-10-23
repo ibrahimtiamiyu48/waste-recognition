@@ -1,0 +1,55 @@
+{
+  "experiment": "waste_material_baseline_v1",
+  "data": "TrashNet photos of 4 materials (plastic, paper, glass, metal): 1390 for training",
+  "evaluation": "TrashNet's own test list, 332 images, never used for fitting",
+  "model": "logistic regression on 32x24 RGB pixels + HSV colour histogram (no deep learning)",
+  "metric": {
+    "name": "macro_f1",
+    "value": 0.6067
+  },
+  "supporting": {
+    "accuracy": 0.6175,
+    "recall_per_class": {
+      "plastic": 0.6486,
+      "paper": 0.7037,
+      "glass": 0.5,
+      "metal": 0.5882
+    },
+    "confusion_matrix": {
+      "rows_true_cols_predicted": [
+        "plastic",
+        "paper",
+        "glass",
+        "metal"
+      ],
+      "values": [
+        [
+          48,
+          6,
+          9,
+          11
+        ],
+        [
+          8,
+          76,
+          8,
+          16
+        ],
+        [
+          14,
+          11,
+          41,
+          16
+        ],
+        [
+          11,
+          8,
+          9,
+          40
+        ]
+      ]
+    },
+    "seed": 42
+  },
+  "limitation": "one object per photo on a white posterboard in good light; real bins have mixed, dirty, crumpled items on busy backgrounds, so this score does not show how the system would work in a real sorting setting"
+}
