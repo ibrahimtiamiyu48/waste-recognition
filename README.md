@@ -11,6 +11,7 @@
 - [Project brief](docs/project_brief.md): user, input/output, data plan (Lab 01)
 - [Data instructions](data/README.md): dataset, licence, where to put it (Lab 02)
 - [Split strategy](docs/split_strategy.md): what is used for training and evaluation (Lab 02)
+- [Project decisions](docs/project_decisions.md): required behavior, acceptance check, failure cases (Lab 03)
 
 ## Run the baseline (Lab 02)
 Environment: **Python 3.10 or newer** (tested with 3.13). Run from the repository root:
