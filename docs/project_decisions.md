@@ -33,3 +33,14 @@ Reason: The simple colour-based baseline reached a macro F1 of 0.607 on 332 held
 | Data or input | Two items on the tray, or an item half outside the photo. The system gives one material for both, so one item goes to the wrong container. | Input check finds more than one object or an object touching the image edge; staff report "wrong item" corrections. | Reject the photo with "Place one item in the middle of the tray" and ask for a retake. |
 | Model behavior | A clear glass bottle is predicted as plastic, because both are transparent and bottle-shaped. Glass ends up in the plastic stream. **(Matches the acceptance check.)** | Glass recall on the evaluation set and the glass→plastic cell of the confusion matrix (14 of 82 in the baseline); staff corrections logged as "glass → plastic". | Send low-confidence glass/plastic results to "Check by hand"; add more clear-glass training photos; re-check glass recall against 0.90. |
 | Integration or workflow | Too many items go to "Check by hand" at busy times. Staff start skipping the check and guess, so the fallback stops protecting against mistakes. | Share of items sent to "Check by hand" per hour, and how long those items wait before a decision is logged. | Show the two most likely materials to make checking fast; review the uncertainty cutoff weekly; set a limit once we have staff capacity numbers. |
+
+## Lab 04 — Inference path
+
+- **Trigger:** user request — staff place one item on the tray and take a photo.
+- **Intended placement:** a shared laptop at the collection point; the camera only captures the photo.
+- **Inference boundary:** `run_attempt()` in `src/inference_demo.py` takes an accepted photo and returns `request_id`, `status`, `result`, `model_version`, `rule_version`, `latency_ms`, `action`, `simulated`.
+- **Model:** `baseline-v1`, the Lab 02 logistic regression, reused without retraining.
+- **Decision rule `decision-v1`:** `review` when the top confidence is below 0.60, or when glass is the runner-up with at least 0.25. Otherwise `ok`.
+- **What the rule does on the 332 test photos (measured):** 19% of items go to "Check by hand"; glass caught (correct or sent to review) rises from 0.50 to 0.62. This is still far below the 0.90 threshold from Lab 03, because the model is often confidently wrong (e.g. `glass12.jpg` is predicted plastic with 0.80 confidence).
+- **Rejected input:** a photo that is unreadable or not 512×384 is rejected before the boundary with a reason, and no record is written.
+- **Unavailable:** if prediction cannot run, `status = unavailable`, `result = null`, and staff sort by hand. The demo forces this once and marks it `simulated: true`.

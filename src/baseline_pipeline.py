@@ -15,6 +15,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+import joblib
 import numpy as np
 from PIL import Image
 from sklearn.linear_model import LogisticRegression
@@ -27,6 +28,7 @@ RAW = ROOT / "data" / "raw"
 ZIP_FILE = RAW / "dataset-resized.zip"
 IMAGE_DIR = RAW / "dataset-resized"
 REPORT_FILE = ROOT / "reports" / "baseline_metrics.json"
+MODEL_FILE = ROOT / "models" / "baseline-v1.joblib"  # reused by src/inference_demo.py
 
 BASE_URL = "https://raw.githubusercontent.com/garythung/trashnet/master/data/"
 DOWNLOADS = {
@@ -126,6 +128,8 @@ def main() -> None:
         LogisticRegression(max_iter=3000, C=0.1, class_weight="balanced", random_state=SEED),
     )
     model.fit(x_train, y_train)
+    MODEL_FILE.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump({"model": model, "classes": CLASSES}, MODEL_FILE)
     pred = model.predict(x_test)
 
     macro_f1 = f1_score(y_test, pred, average="macro")
@@ -154,6 +158,7 @@ def main() -> None:
     REPORT_FILE.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(result, indent=2))
     print(f"Saved {REPORT_FILE.relative_to(ROOT)}")
+    print(f"Saved model {MODEL_FILE.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":
