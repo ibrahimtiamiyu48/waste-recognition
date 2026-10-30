@@ -44,3 +44,5 @@ python src/inference_demo.py --input-ref data/raw/dataset-resized/glass/glass373
 The command classifies one photo twice: a normal attempt using the baseline model, and a simulated attempt where inference is unavailable. It writes both records to **`reports/inference_demo.jsonl`** (one JSON line each, overwritten on every run). The path is drawn in [docs/inference_architecture.drawio](docs/inference_architecture.drawio); open it at https://app.diagrams.net.
 
 To see a `review` result, use `--input-ref data/raw/dataset-resized/glass/glass194.jpg`.
+
+![Lab 04 inference architecture](docs/inference_architecture.png)
