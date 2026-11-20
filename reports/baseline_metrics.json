@@ -5,14 +5,14 @@
   "model": "logistic regression on 32x24 RGB pixels + HSV colour histogram (no deep learning)",
   "metric": {
     "name": "macro_f1",
-    "value": 0.6067
+    "value": 0.6009
   },
   "supporting": {
-    "accuracy": 0.6175,
+    "accuracy": 0.6114,
     "recall_per_class": {
       "plastic": 0.6486,
-      "paper": 0.7037,
-      "glass": 0.5,
+      "paper": 0.6944,
+      "glass": 0.4878,
       "metal": 0.5882
     },
     "confusion_matrix": {
@@ -31,15 +31,15 @@
         ],
         [
           8,
-          76,
-          8,
+          75,
+          9,
           16
         ],
         [
           14,
           11,
-          41,
-          16
+          40,
+          17
         ],
         [
           11,

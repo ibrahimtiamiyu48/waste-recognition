@@ -1,0 +1,53 @@
+{
+  "contract_version": "input-contract-v1",
+  "project": "SortVision - waste recognition by material (plastic, paper, glass, metal)",
+  "model_version": "baseline-v1",
+  "preprocessing_id": "features-v1",
+  "scope": "Request-level checks only: values supplied in the request are checked. The photo file is not opened or decoded by this validator.",
+  "rules": [
+    {
+      "rule": "input_reference_present",
+      "kind": "structural",
+      "field": "input_ref",
+      "on_fail": "error",
+      "why": "Without a photo reference there is nothing to classify. Means the field is non-empty, not that the file was found."
+    },
+    {
+      "rule": "format_supported",
+      "kind": "structural",
+      "field": "format",
+      "allowed": ["jpg", "jpeg"],
+      "on_fail": "error",
+      "why": "TrashNet training photos and the tray camera produce JPEG; the baseline was never fitted on other formats."
+    },
+    {
+      "rule": "dimensions_match_tray_camera",
+      "kind": "structural",
+      "fields": ["width", "height"],
+      "expected_width": 512,
+      "expected_height": 384,
+      "on_fail": "error",
+      "why": "Interface requirement from Lab 02/04: the baseline was trained only on 512x384 photos and the Lab 04 check_input already rejects any other size."
+    },
+    {
+      "rule": "source_is_tray_camera",
+      "kind": "project_specific",
+      "field": "source",
+      "approved": ["tray-camera", "trashnet-test"],
+      "on_fail": "warning",
+      "why": "Lab 03 narrowed the operating conditions to one item on a plain tray under a fixed camera. A photo from another source (e.g. a phone) is readable but outside the conditions the model was evaluated in, so a person checks it."
+    },
+    {
+      "rule": "preprocessing_identity_match",
+      "kind": "runtime",
+      "on_fail": "error",
+      "why": "The runtime preprocessing id is defined in src/inference_demo.py, never taken from the request. It must equal the contract, otherwise the features would not match what baseline-v1 was trained on."
+    }
+  ],
+  "decision": {
+    "pass": "call_prediction",
+    "warning": "route_for_review",
+    "error": "reject_input",
+    "precedence": "error > warning > pass"
+  }
+}

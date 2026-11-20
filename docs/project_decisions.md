@@ -44,3 +44,13 @@ Reason: The simple colour-based baseline reached a macro F1 of 0.607 on 332 held
 - **What the rule does on the 332 test photos (measured):** 19% of items go to "Check by hand"; glass caught (correct or sent to review) rises from 0.50 to 0.62. This is still far below the 0.90 threshold from Lab 03, because the model is often confidently wrong (e.g. `glass12.jpg` is predicted plastic with 0.80 confidence).
 - **Rejected input:** a photo that is unreadable or not 512×384 is rejected before the boundary with a reason, and no record is written.
 - **Unavailable:** if prediction cannot run, `status = unavailable`, `result = null`, and staff sort by hand. The demo forces this once and marks it `simulated: true`.
+
+## Lab 05 — Input assurance
+
+- **Contract:** `config/input_contract.json` (`input-contract-v1`). The checks are request-level: they read the values in the request and do not open or decode the photo.
+- **Rules:**
+  - *Structural (error):* `input_reference_present`, `format_supported` (jpg), and `dimensions_match_tray_camera` (512×384, the only size the baseline was trained on, and the same size the Lab 04 check uses).
+  - *Project-specific (warning):* `source_is_tray_camera`. The source must be `tray-camera` or `trashnet-test`. A phone photo is readable but falls outside the narrowed operating conditions from Lab 03, so a person checks it ("Check by hand").
+  - *Runtime (error):* `preprocessing_identity_match`. `PREPROCESSING_ID = "features-v1"` is defined in `src/inference_demo.py`, not taken from the request. It names `baseline_pipeline.features()`.
+- **Decision:** `pass` → `call_prediction`; `warning` → `route_for_review` (no automatic prediction); `error` → `reject_input`. When several rules fail, the most severe wins: error > warning > pass.
+- **Trace:** `reports/validation_demo.jsonl` holds one record per request: `request_id`, every check (`rule`, `observed`, `status`, `action`), `validation_status`, `action`, `prediction_called`, and the prediction outcome when it ran.

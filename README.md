@@ -46,3 +46,13 @@ The command classifies one photo twice: a normal attempt using the baseline mode
 To see a `review` result, use `--input-ref data/raw/dataset-resized/glass/glass194.jpg`.
 
 ![Lab 04 inference architecture](docs/inference_architecture.png)
+
+## Run the input-assurance demo (Lab 05)
+Run the baseline first (so the model and photos exist). Then, from the repository root:
+
+```bash
+python src/inference_demo.py
+python -m unittest tests/test_input_validation.py
+```
+
+The first command sends three requests through the validator in `src/input_validation.py`, using the rules in **`config/input_contract.json`**, before prediction. It prints one `pass`, one `error` and one `warning` result, and writes one combined record per request to **`reports/validation_demo.jsonl`**. Only the passing request reaches `project_predict()`. The tests prove that an error overrides a warning, that a warning does not call prediction, and that a pass does.
