@@ -15,6 +15,10 @@
 - [Split strategy](docs/split_strategy.md): what is used for training and evaluation (Lab 02)
 - [Project decisions](docs/project_decisions.md): required behavior, acceptance check, failure cases (Lab 03), inference path choices (Lab 04)
 - [Inference architecture](docs/inference_architecture.drawio): editable diagram of the demo path (Lab 04)
+- [Input contract](config/input_contract.json): validation rules (Lab 05)
+- [Input validation flow](docs/input_validation_flow.drawio): editable diagram of the validation path (Lab 05)
+- [Lab 05 path check](docs/lab05_check.md): teammate questions and answers (Lab 05)
+- [Example service trace](reports/service_example.jsonl): one valid and one rejected request (Lab 06)
 
 ## Run the baseline (Lab 02)
 Environment: **Python 3.10 or newer** (tested with 3.13). Run from the repository root:
@@ -56,3 +60,44 @@ python -m unittest tests/test_input_validation.py
 ```
 
 The first command sends three requests through the validator in `src/input_validation.py`, using the rules in **`config/input_contract.json`**, before prediction. It prints one `pass`, one `error` and one `warning` result, and writes one combined record per request to **`reports/validation_demo.jsonl`**. Only the passing request reaches `project_predict()`. The tests prove that an error overrides a warning, that a warning does not call prediction, and that a pass does.
+
+The path is drawn in [docs/input_validation_flow.drawio](docs/input_validation_flow.drawio). The answers to the teammate check are in [docs/lab05_check.md](docs/lab05_check.md).
+
+![Lab 05 input validation flow](docs/input_validation_flow.png)
+
+## Run the API service on the team VM (Lab 06)
+The service puts the Lab 04–05 path behind HTTP. `POST /predict` takes a photo, decodes it, and runs the Lab 05 checks on the **decoded** format and size. Only a passing photo reaches `baseline-v1`. Every request is appended to `reports/service_predictions.jsonl` on the VM. `GET /health` shows which service, model, rule, contract and preprocessing are running.
+
+**VM:** Ubuntu 24.04 LTS · 2 vCPU · 4 GB RAM · 10–20 GB SSD · public IPv4 · your SSH public key.
+
+On the VM (after `ssh <username>@<public-ip>`):
+
+```bash
+sudo apt update && sudo apt install -y python3-venv git
+git clone https://github.com/ibrahimtiamiyu48/waste-recognition.git
+cd waste-recognition
+python3 -m venv .venv && source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install --no-cache-dir -r requirements.txt
+python3 -m unittest tests/test_app.py tests/test_input_validation.py   # no model needed
+python3 src/baseline_pipeline.py                                       # downloads TrashNet, saves models/baseline-v1.joblib
+python3 -m uvicorn app:app --app-dir src --host 0.0.0.0 --port 8000
+```
+
+The repository is private, so `git clone` asks for a GitHub username and a **personal access token** (not your password). Alternatively, copy the folder from your computer with `scp -r waste-recognition <username>@<public-ip>:~/`.
+
+Open `http://<public-ip>:8000/health` and `http://<public-ip>:8000/docs`. `model_loaded` is `false` until the first valid photo arrives.
+
+**Demo from another computer** (in a clone of this repository):
+
+```bash
+bash scripts/demo_requests.sh <public-ip>
+```
+
+Alternatively, use `/docs` → `POST /predict` → *Try it out*. Upload `examples/glass373.jpg` (request ID `req-cloud-001`); it reaches the model and returns HTTP 200 with material and confidence. Then upload `examples/not_an_image.txt`; it returns HTTP 400 with `status: error`, `action: reject_input` and `prediction_called: false`. To see both decisions on the VM, stop the server with Ctrl+C and run:
+
+```bash
+tail -n 2 reports/service_predictions.jsonl
+```
+
+[`reports/service_example.jsonl`](reports/service_example.jsonl) is a committed example of those two records. The live log is not committed. Do not commit `.env`, SSH keys or tokens. Stop the VM when the team is not using it.

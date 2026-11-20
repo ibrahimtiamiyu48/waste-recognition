@@ -54,3 +54,13 @@ Reason: The simple colour-based baseline reached a macro F1 of 0.607 on 332 held
   - *Runtime (error):* `preprocessing_identity_match`. `PREPROCESSING_ID = "features-v1"` is defined in `src/inference_demo.py`, not taken from the request. It names `baseline_pipeline.features()`.
 - **Decision:** `pass` → `call_prediction`; `warning` → `route_for_review` (no automatic prediction); `error` → `reject_input`. When several rules fail, the most severe wins: error > warning > pass.
 - **Trace:** `reports/validation_demo.jsonl` holds one record per request: `request_id`, every check (`rule`, `observed`, `status`, `action`), `validation_status`, `action`, `prediction_called`, and the prediction outcome when it ran.
+- **Diagram:** [input_validation_flow.drawio](input_validation_flow.drawio) ([png](input_validation_flow.png)). **Path check:** [lab05_check.md](lab05_check.md).
+
+## Lab 06 — Service on a cloud VM
+
+- **Service:** `src/app.py` (FastAPI, `service-v1`), started with `uvicorn app:app --app-dir src --host 0.0.0.0 --port 8000`.
+- **Endpoints:** `GET /health` returns service, host, `model_version`, `rule_version`, `contract_version`, `preprocessing_id` and `model_loaded`. `POST /predict` takes a multipart photo (`file`), plus optional `request_id` and `source` (default `tray-camera`).
+- **Input checks before prediction:** the upload is decoded with Pillow first. The Lab 05 rules then run on the **decoded** format, width and height, so the service does not trust values claimed by the client. A file that does not decode gives `format = null` and fails `format_supported` and `dimensions_match_tray_camera`. Uploads over 5 MB are not decoded.
+- **Routing:** `pass` → `baseline-v1` + `decision-v1` (HTTP 200); `warning` → `route_for_review`, no prediction (HTTP 200); `error` → `reject_input`, no prediction (HTTP 400). If the model file is missing: `unavailable`, staff sort by hand (HTTP 503).
+- **Evidence:** one JSONL line per request in `reports/service_predictions.jsonl` on the VM: `request_id`, decoded input properties, `checks`, `status`, `action`, `prediction_called` and `prediction`. A committed example is in `reports/service_example.jsonl`.
+- **Model:** the project's own `baseline-v1`, not the pretrained YOLO model from the reference demo. The demo request uses a TrashNet test photo, so this is a deployment check, not new evaluation evidence.
