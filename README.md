@@ -19,6 +19,8 @@
 - [Input validation flow](docs/input_validation_flow.drawio): editable diagram of the validation path (Lab 05)
 - [Lab 05 path check](docs/lab05_check.md): teammate questions and answers (Lab 05)
 - [Example service trace](reports/service_example.jsonl): one valid and one rejected request (Lab 06)
+- [Dockerfile](Dockerfile) and [.dockerignore](.dockerignore): container for the API service (Lab 07)
+- [Defense plan](docs/defense_plan.md): demo steps, fallback evidence, who explains what
 
 ## Run the baseline (Lab 02)
 Environment: **Python 3.10 or newer** (tested with 3.13). Run from the repository root:
@@ -101,3 +103,51 @@ tail -n 2 reports/service_predictions.jsonl
 ```
 
 [`reports/service_example.jsonl`](reports/service_example.jsonl) is a committed example of those two records. The live log is not committed. Do not commit `.env`, SSH keys or tokens. Stop the VM when the team is not using it.
+
+## Run the service in Docker (Lab 07)
+The image holds the code, Python and packages. Three things are connected when the container starts and are never baked into the image:
+
+| On the VM | In the container | How |
+| --- | --- | --- |
+| `models/` (trained by `baseline_pipeline.py`) | `/app/models` | read-only bind mount |
+| `reports/` (evidence) | `/app/reports` | bind mount, so records survive container replacement |
+| `.env` (from `.env.example`) | environment | `--env-file` |
+
+On the VM, in `~/waste-recognition` (after the Lab 06 steps, so `models/baseline-v1.joblib` exists):
+
+```bash
+sudo apt update && sudo apt install -y docker.io docker-buildx
+sudo systemctl enable --now docker
+git pull
+cp .env.example .env
+mkdir -p reports
+
+sudo docker build -t waste-recognition-service:1 .
+sudo docker run --rm waste-recognition-service:1 \
+  python -m unittest tests/test_app.py tests/test_input_validation.py
+
+sudo docker run --rm --name waste-recognition \
+  -p 8000:8000 \
+  --env-file .env \
+  --mount type=bind,src="$(pwd)/models",dst=/app/models,readonly \
+  --mount type=bind,src="$(pwd)/reports",dst=/app/reports \
+  waste-recognition-service:1
+```
+
+From another computer, run `bash scripts/demo_requests.sh <public-ip>` (or use `/docs`). Then stop the container with Ctrl+C and run `tail -n 2 reports/service_predictions.jsonl`.
+
+**Replace the container and check the evidence:**
+
+```bash
+sudo docker run -d --rm --name waste-recognition \
+  -p 8000:8000 --env-file .env \
+  --mount type=bind,src="$(pwd)/models",dst=/app/models,readonly \
+  --mount type=bind,src="$(pwd)/reports",dst=/app/reports \
+  waste-recognition-service:1
+sudo docker logs waste-recognition          # wait for "Application startup complete"
+curl http://localhost:8000/health           # new container answers; model_loaded=false until the first photo
+tail -n 2 reports/service_predictions.jsonl # earlier records are still there
+sudo docker stop waste-recognition
+```
+
+If port 8000 is busy, stop the Lab 06 Uvicorn process (Ctrl+C in its window) or the old container (`sudo docker stop waste-recognition`).

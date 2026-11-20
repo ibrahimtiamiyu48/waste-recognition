@@ -64,3 +64,13 @@ Reason: The simple colour-based baseline reached a macro F1 of 0.607 on 332 held
 - **Routing:** `pass` → `baseline-v1` + `decision-v1` (HTTP 200); `warning` → `route_for_review`, no prediction (HTTP 200); `error` → `reject_input`, no prediction (HTTP 400). If the model file is missing: `unavailable`, staff sort by hand (HTTP 503).
 - **Evidence:** one JSONL line per request in `reports/service_predictions.jsonl` on the VM: `request_id`, decoded input properties, `checks`, `status`, `action`, `prediction_called` and `prediction`. A committed example is in `reports/service_example.jsonl`.
 - **Model:** the project's own `baseline-v1`, not the pretrained YOLO model from the reference demo. The demo request uses a TrashNet test photo, so this is a deployment check, not new evaluation evidence.
+
+## Lab 07 — Container
+
+- **Image:** `waste-recognition-service:1`, built from `Dockerfile` (`python:3.12-slim`, the same Python as the Ubuntu 24.04 VM). It contains only `src/`, `config/`, `tests/`, `examples/` and the packages from `requirements.txt`. It runs as the non-root user `appuser` (UID 1000, matching the VM user, so it can write to the mounted `reports/`), and has a `HEALTHCHECK` on `/health`.
+- **Kept out of the image** (`.dockerignore`): `.git`, `.venv`, `.env`, keys, `data/`, `models/`, `*.joblib`, `reports/`, `*.jsonl` and `docs/`.
+- **Runtime connections:** `-p 8000:8000`; `--env-file .env` (`SERVICE_LOG`); `models/` mounted read-only at `/app/models`; `reports/` mounted at `/app/reports`.
+- **Model weights are mounted, not built in:** `baseline-v1.joblib` is trained on the VM by `src/baseline_pipeline.py`. A new model version therefore needs no image rebuild, and the image stays small. Train the model with the same scikit-learn version that the image installs, to avoid version warnings.
+- **Behaviour is unchanged from Lab 06:** the same tests pass inside the image, the valid photo returns HTTP 200 with `prediction_called: true`, and the text file returns HTTP 400 with `reject_input` and `prediction_called: false`.
+- **Persistence:** after the container is removed and a new one is started, `/health` answers from the new container (`model_loaded` is `false` until the first photo), and the earlier JSONL records are still in `reports/service_predictions.jsonl` on the VM.
+- **Small fix:** when an upload does not decode, `dimensions_match_tray_camera` now records `observed: null` instead of `"NonexNone"`.

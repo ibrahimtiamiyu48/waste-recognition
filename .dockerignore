@@ -1,0 +1,28 @@
+# Version control and local environments
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+.ipynb_checkpoints
+.DS_Store
+
+# Secrets and runtime configuration (passed with --env-file)
+.env
+*.pem
+id_*
+
+# Data, model weights and generated evidence (mounted at runtime)
+data/
+models/
+*.joblib
+reports/
+*.jsonl
+
+# Not needed inside the image
+docs/
+scripts/
+README.md
+Dockerfile
+.dockerignore

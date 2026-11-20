@@ -55,7 +55,8 @@ def check_dimensions(request: dict, contract: dict) -> dict:
     rule = _rule(contract, "dimensions_match_tray_camera")
     w, h = request.get("width"), request.get("height")
     ok = w == rule["expected_width"] and h == rule["expected_height"]
-    return _check(rule, f"{w}x{h}", ok)
+    observed = f"{w}x{h}" if w is not None and h is not None else None
+    return _check(rule, observed, ok)
 
 
 def check_source(request: dict, contract: dict) -> dict:
